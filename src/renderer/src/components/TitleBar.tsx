@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
 
 interface Props {
@@ -12,8 +12,13 @@ export function TitleBar({ onOpenFiles }: Props): JSX.Element {
     activeLogId, viewModes, setViewMode
   } = useAppStore()
   const [showSettings, setShowSettings] = useState(false)
+  const [appVersion, setAppVersion] = useState<string>('')
 
   const viewMode = activeLogId ? (viewModes[activeLogId] ?? 'grouped') : 'grouped'
+
+  useEffect(() => {
+    window.api.getAppVersion().then((v: string) => setAppVersion(v))
+  }, [])
 
   const handleOpen = async () => {
     const paths = await window.api.openFileDialog()
@@ -119,6 +124,12 @@ export function TitleBar({ onOpenFiles }: Props): JSX.Element {
           <button className="btn-ghost mt-3 w-full text-center" onClick={() => setShowSettings(false)}>
             Close
           </button>
+          {appVersion && (
+            <div className="mt-3 pt-3 border-t border-surface-500 flex items-center justify-between">
+              <span className="text-[10px] text-gray-600">LogPilot</span>
+              <span className="text-[10px] text-gray-600 font-mono">v{appVersion}</span>
+            </div>
+          )}
         </div>
       )}
 
