@@ -7,11 +7,17 @@ import {
 import { detectFormat } from './formatDetector'
 import { parseLineForFormat } from './lineParser'
 import { groupEntries } from './eventGrouper'
+import { parseEvtxFile } from './evtxParser'
 
 export async function parseLogFile(
   filePath: string,
   onProgress?: (pct: number) => void
 ): Promise<ParsedLog> {
+  // Route .evtx binary files to the dedicated PowerShell-based parser
+  if (filePath.toLowerCase().endsWith('.evtx')) {
+    return parseEvtxFile(filePath, onProgress)
+  }
+
   const { size, format, dateOrder } = await detectFormat(filePath)
   const entries: LogEntry[] = []
   let lineNumber = 0

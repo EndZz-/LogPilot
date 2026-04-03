@@ -67,6 +67,7 @@ export type LogFormat =
   | 'windows-event'
   | 'syslog'
   | 'log4j'
+  | 'evtx'
 
 // ── Color profile ─────────────────────────────────────────────────────────
 export interface ColorRule {

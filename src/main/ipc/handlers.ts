@@ -11,7 +11,8 @@ export function setupIpcHandlers(): void {
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
       filters: [
-        { name: 'Log Files', extensions: ['log', 'txt', 'out', 'err', 'json', 'ndjson'] },
+        { name: 'Log Files', extensions: ['log', 'txt', 'out', 'err', 'json', 'ndjson', 'evtx'] },
+        { name: 'Windows Event Log', extensions: ['evtx'] },
         { name: 'All Files', extensions: ['*'] }
       ]
     })
