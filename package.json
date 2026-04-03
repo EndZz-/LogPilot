@@ -67,7 +67,6 @@
     },
     "files": [
       "dist-electron/**/*",
-      "dist/**/*",
       "resources/icon/icon.png"
     ]
   }

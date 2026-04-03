@@ -27,6 +27,9 @@ export default defineConfig({
     }
   },
   renderer: {
+    build: {
+      outDir: 'dist-electron/renderer'
+    },
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),
