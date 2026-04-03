@@ -10,4 +10,5 @@ release/
 .DS_Store
 Thumbs.db
 nul
+*.psd
 
