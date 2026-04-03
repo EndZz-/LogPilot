@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    @apply bg-surface-900 text-gray-100;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 13px;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-surface-900; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-500 rounded; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-surface-600; }
+}
+
+@layer components {
+  .log-row {
+    @apply flex items-start gap-2 px-3 py-0.5 border-l-2 border-transparent hover:bg-surface-700 cursor-pointer transition-colors duration-75;
+  }
+  .log-row.selected {
+    @apply bg-surface-600 border-l-accent-blue;
+  }
+  .log-row.highlighted {
+    @apply border-l-accent-yellow;
+  }
+  .group-header {
+    @apply flex items-center gap-2 px-3 py-1 bg-surface-800 hover:bg-surface-700 cursor-pointer sticky top-0 z-10 border-b border-surface-700 transition-colors;
+  }
+  .day-header {
+    @apply flex items-center gap-2 px-3 py-1.5 bg-surface-900 border-y border-surface-600 cursor-pointer font-semibold text-xs uppercase tracking-widest text-gray-400 hover:text-gray-200 transition-colors;
+  }
+  .badge {
+    @apply text-xs font-bold px-1.5 py-0.5 rounded tabular-nums;
+  }
+  .tab {
+    @apply flex items-center gap-1.5 px-3 py-1.5 text-xs border-r border-surface-600 cursor-pointer transition-colors whitespace-nowrap;
+  }
+  .tab.active {
+    @apply bg-surface-700 text-white border-b-2 border-b-accent-blue;
+  }
+  .tab:not(.active) {
+    @apply text-gray-400 hover:text-gray-200 hover:bg-surface-800;
+  }
+  .btn {
+    @apply px-3 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer border border-surface-500;
+  }
+  .btn-primary {
+    @apply btn bg-accent-blue text-white border-accent-blue hover:opacity-90;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-gray-400 hover:text-white hover:bg-surface-700;
+  }
+  .context-menu {
+    @apply fixed z-50 bg-surface-700 border border-surface-500 rounded shadow-2xl py-1 min-w-[180px];
+  }
+  .context-menu-item {
+    @apply flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 hover:bg-surface-600 hover:text-white cursor-pointer transition-colors;
+  }
+}
+

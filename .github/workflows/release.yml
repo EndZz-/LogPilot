@@ -1,0 +1,44 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & publish release
+        # electron-builder --publish always:
+        #   1. Builds the NSIS installer
+        #   2. Creates (or updates) the GitHub Release for the current tag
+        #   3. Uploads the .exe installer AND latest.yml (required for auto-update)
+        run: npm run build && npx electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload installer artifact (CI reference copy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: LogPilot-Windows-Installer
+          path: release/**/*.exe
+          if-no-files-found: warn
+
