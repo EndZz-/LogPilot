@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { useAppStore } from '../store/useAppStore'
 
 interface Props {
@@ -6,7 +6,11 @@ interface Props {
 }
 
 export function TabBar({ onLoadFiles }: Props): JSX.Element {
-  const { logs, activeLogId, setActiveLog, removeLog, hiddenDates, hiddenGroups, hiddenPanelOpen, setHiddenPanelOpen } = useAppStore()
+  const {
+    logs, activeLogId, setActiveLog, removeLog,
+    hiddenDates, hiddenGroups, hiddenPanelOpen, setHiddenPanelOpen,
+    sideBySideMode, setSideBySideMode, reorderLogs
+  } = useAppStore()
 
   const totalHidden = logs.reduce((acc, log) => {
     return acc + (hiddenDates[log.id]?.length ?? 0) + (hiddenGroups[log.id]?.length ?? 0)
@@ -17,12 +21,39 @@ export function TabBar({ onLoadFiles }: Props): JSX.Element {
     if (paths.length) onLoadFiles(paths)
   }
 
+  // Drag-to-reorder state
+  const dragIndexRef = useRef<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null)
+
+  const handleDragStart = (index: number) => { dragIndexRef.current = index }
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    setDragOverIndex(index)
+  }
+  const handleDrop = (toIndex: number) => {
+    const fromIndex = dragIndexRef.current
+    if (fromIndex !== null && fromIndex !== toIndex) {
+      reorderLogs(fromIndex, toIndex)
+    }
+    dragIndexRef.current = null
+    setDragOverIndex(null)
+  }
+  const handleDragEnd = () => {
+    dragIndexRef.current = null
+    setDragOverIndex(null)
+  }
+
   return (
     <div className="flex items-center bg-surface-800 border-b border-surface-600 overflow-x-auto shrink-0 h-9">
-      {logs.map(log => (
+      {logs.map((log, index) => (
         <div
           key={log.id}
-          className={`tab ${log.id === activeLogId ? 'active' : ''}`}
+          draggable
+          onDragStart={() => handleDragStart(index)}
+          onDragOver={(e) => handleDragOver(e, index)}
+          onDrop={() => handleDrop(index)}
+          onDragEnd={handleDragEnd}
+          className={`tab ${log.id === activeLogId ? 'active' : ''} ${dragOverIndex === index && dragIndexRef.current !== index ? 'border-l-2 border-accent-blue' : ''}`}
           onClick={() => { setActiveLog(log.id); setHiddenPanelOpen(false) }}
           title={log.filePath}
         >
@@ -50,15 +81,23 @@ export function TabBar({ onLoadFiles }: Props): JSX.Element {
         + Add Log
       </button>
 
+      {/* Side-by-side toggle — only when 2+ logs loaded */}
+      {logs.length >= 2 && (
+        <button
+          className={`tab shrink-0 px-2 gap-1 ${sideBySideMode ? 'active text-accent-blue' : 'text-gray-400 hover:text-gray-200'}`}
+          onClick={() => setSideBySideMode(!sideBySideMode)}
+          title={sideBySideMode ? 'Exit side-by-side view' : 'View first two logs side by side'}
+        >
+          <span className="text-[11px]">⧉</span>
+          Split
+        </button>
+      )}
+
       {/* Hidden tab — only visible when there are hidden items */}
       {totalHidden > 0 && (
         <button
           className={`tab shrink-0 ml-auto ${hiddenPanelOpen ? 'active' : 'text-gray-400 hover:text-gray-200'}`}
-          onClick={() => {
-            setHiddenPanelOpen(!hiddenPanelOpen)
-            // Deselect any active log tab visually by keeping activeLogId as-is;
-            // the App will show the hidden panel instead when hiddenPanelOpen is true
-          }}
+          onClick={() => setHiddenPanelOpen(!hiddenPanelOpen)}
           title="View hidden dates and event groups"
         >
           <span className="text-red-400">🚫</span>

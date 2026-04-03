@@ -56,6 +56,9 @@ interface AppState {
   // Whether the hidden panel is open
   hiddenPanelOpen: boolean
 
+  // Side-by-side view mode
+  sideBySideMode: boolean
+
   // Actions
   addLog: (log: LoadedLog) => void
   updateLog: (id: string, patch: Partial<LoadedLog>) => void
@@ -86,6 +89,8 @@ interface AppState {
   hideGroup: (logId: string, groupId: string) => void
   unhideGroup: (logId: string, groupId: string) => void
   setHiddenPanelOpen: (open: boolean) => void
+  setSideBySideMode: (enabled: boolean) => void
+  reorderLogs: (fromIndex: number, toIndex: number) => void
 
   addColorProfile: (profile: ColorProfile) => void
   updateColorProfile: (id: string, patch: Partial<ColorProfile>) => void
@@ -115,6 +120,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   hiddenDates: {},
   hiddenGroups: {},
   hiddenPanelOpen: false,
+  sideBySideMode: false,
 
   addLog: (log) => set((s) => ({
     logs: [...s.logs, log],
@@ -235,6 +241,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     hiddenGroups: { ...s.hiddenGroups, [logId]: (s.hiddenGroups[logId] ?? []).filter(id => id !== groupId) }
   })),
   setHiddenPanelOpen: (open) => set({ hiddenPanelOpen: open }),
+  setSideBySideMode: (enabled) => set({ sideBySideMode: enabled }),
+  reorderLogs: (fromIndex, toIndex) => set((s) => {
+    const logs = [...s.logs]
+    const [moved] = logs.splice(fromIndex, 1)
+    logs.splice(toIndex, 0, moved)
+    return { logs }
+  }),
 
   addColorProfile: (profile) => set((s) => ({ colorProfiles: [...s.colorProfiles, profile] })),
   updateColorProfile: (id, patch) => set((s) => ({

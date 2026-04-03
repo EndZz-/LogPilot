@@ -20,16 +20,19 @@ const LEVEL_ORDER = ['FATAL', 'CRITICAL', 'ERROR', 'WARN', 'NOTICE', 'INFO', 'DE
 
 interface Props {
   log: LoadedLog
+  /** Optional external ref for the scroll container — used by SideBySideView for synchronized wheel scroll */
+  scrollContainerRef?: React.RefObject<HTMLDivElement>
 }
 
-export function LogViewer({ log }: Props): JSX.Element {
+export function LogViewer({ log, scrollContainerRef }: Props): JSX.Element {
   const { settings, searchTerms, viewModes, hiddenDates, hiddenGroups, levelFilters, toggleLevelFilter, selectedEntry } = useAppStore()
   const searchTerm = searchTerms[log.id] ?? ''
   const viewMode = viewModes[log.id] ?? 'grouped'
   const myHiddenDates = hiddenDates[log.id] ?? []
   const myHiddenGroups = hiddenGroups[log.id] ?? []
   const hiddenLevels = levelFilters[log.id] ?? []
-  const containerRef = useRef<HTMLDivElement>(null)
+  const internalRef = useRef<HTMLDivElement>(null)
+  const containerRef = (scrollContainerRef ?? internalRef) as React.RefObject<HTMLDivElement>
   const [scrollTop, setScrollTop] = useState(0)
 
   // Which canonical levels are present in this log and how many groups each has

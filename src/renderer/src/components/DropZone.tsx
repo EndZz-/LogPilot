@@ -17,6 +17,7 @@ export function DropZone({ onFiles, children }: Props): JSX.Element {
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault()
+        e.stopPropagation()  // Prevent event from reaching the window-level handler
         counter.current = 0
         setDragging(false)
         const files = Array.from(e.dataTransfer.files).map(f => (f as File & { path: string }).path)

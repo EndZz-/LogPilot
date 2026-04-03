@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 import { useAppStore } from './store/useAppStore'
 import { TitleBar } from './components/TitleBar'
 import { TabBar } from './components/TabBar'
 import { LogViewer } from './components/LogViewer'
+import { SideBySideView } from './components/SideBySideView'
 import { CorrelationWindow } from './components/CorrelationWindow'
 import { ContextMenu } from './components/ContextMenu'
 import { DropZone } from './components/DropZone'
@@ -12,7 +13,11 @@ import { randomUUID } from './utils/id'
 import { ParsedLog } from '../../shared/types'
 
 export default function App(): JSX.Element {
-  const { logs, activeLogId, contextMenu, correlationOpen, hiddenPanelOpen, addLog, updateLog, setContextMenu } = useAppStore()
+  const {
+    logs, activeLogId, contextMenu, correlationOpen, hiddenPanelOpen,
+    sideBySideMode, setSideBySideMode,
+    addLog, updateLog, setContextMenu
+  } = useAppStore()
 
   const loadFiles = useCallback(async (filePaths: string[]) => {
     for (const filePath of filePaths) {
@@ -54,10 +59,19 @@ export default function App(): JSX.Element {
     }
   }, [addLog, updateLog])
 
-  // Handle drag & drop onto the whole window
+  // Keep a ref so the window-level drop handler always reads the live log count
+  // without depending on a potentially-stale closure.
+  const logsLengthRef = useRef(logs.length)
+  useEffect(() => { logsLengthRef.current = logs.length }, [logs.length])
+
+  // Handle drag & drop onto the whole window (only when no logs are loaded —
+  // the DropZone component handles drops once a log tab is already open and
+  // calls e.stopPropagation() so the event never reaches here).
   useEffect(() => {
     const handleDrop = async (e: DragEvent) => {
       e.preventDefault()
+      // Guard using the ref so we always see the latest count, never a stale closure
+      if (logsLengthRef.current > 0) return
       const files = Array.from(e.dataTransfer?.files ?? []).map(f => (f as File & { path: string }).path)
       if (files.length > 0) await loadFiles(files)
     }
@@ -80,6 +94,14 @@ export default function App(): JSX.Element {
 
   const activeLog = logs.find(l => l.id === activeLogId)
 
+  // Auto-exit side-by-side if fewer than 2 logs remain
+  useEffect(() => {
+    if (sideBySideMode && logs.length < 2) setSideBySideMode(false)
+  }, [logs.length, sideBySideMode, setSideBySideMode])
+
+  const showSideBySide = sideBySideMode && logs.length >= 2
+  const showCorrelation = logs.length > 1 && correlationOpen && !hiddenPanelOpen && !showSideBySide
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-surface-900">
       <TitleBar onOpenFiles={loadFiles} />
@@ -89,13 +111,19 @@ export default function App(): JSX.Element {
         <>
           <TabBar onLoadFiles={loadFiles} />
           <div className="flex flex-col flex-1 overflow-hidden">
-            {/* Main content: hidden panel OR log viewer */}
+            {/* Main content */}
             <div
               className="flex-1 overflow-hidden"
-              style={{ height: correlationOpen && logs.length > 1 && !hiddenPanelOpen ? 'calc(100% - 220px)' : '100%' }}
+              style={{ height: showCorrelation ? 'calc(100% - 220px)' : '100%' }}
             >
               {hiddenPanelOpen ? (
                 <HiddenPanel />
+              ) : showSideBySide ? (
+                <SideBySideView
+                  leftLog={logs[0]}
+                  rightLog={logs[1]}
+                  onLoadFiles={loadFiles}
+                />
               ) : activeLog ? (
                 <DropZone onFiles={loadFiles}>
                   <LogViewer log={activeLog} />
@@ -103,10 +131,8 @@ export default function App(): JSX.Element {
               ) : null}
             </div>
 
-            {/* Correlation window (only when 2+ logs loaded and not in hidden panel) */}
-            {logs.length > 1 && correlationOpen && !hiddenPanelOpen && (
-              <CorrelationWindow />
-            )}
+            {/* Correlation window (hidden in split mode) */}
+            {showCorrelation && <CorrelationWindow />}
           </div>
         </>
       )}

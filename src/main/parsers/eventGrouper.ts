@@ -59,24 +59,31 @@ export function groupEntries(
     groups.push({ template: templateParts.join('|'), entries: grpEntries, level: level || null, source: source || null })
   }
 
-  // Second pass: fuzzy merge — merge groups whose templates are similar
+  // Second pass: fuzzy merge — merge groups whose templates are similar.
+  // Skip for large files (>400 unique groups) to avoid O(n²) slowdown.
+  const FUZZY_MERGE_LIMIT = 400
   const merged: typeof groups = []
-  const used = new Set<number>()
 
-  for (let i = 0; i < groups.length; i++) {
-    if (used.has(i)) continue
-    const base = { ...groups[i], entries: [...groups[i].entries] }
-    for (let j = i + 1; j < groups.length; j++) {
-      if (used.has(j)) continue
-      if (base.level !== groups[j].level) continue // don't merge across levels
-      const sim = similarity(base.template, groups[j].template)
-      if (sim >= fuzzyThreshold) {
-        base.entries.push(...groups[j].entries)
-        used.add(j)
+  if (groups.length > FUZZY_MERGE_LIMIT) {
+    // Too many unique groups — exact match only (already done above)
+    merged.push(...groups)
+  } else {
+    const used = new Set<number>()
+    for (let i = 0; i < groups.length; i++) {
+      if (used.has(i)) continue
+      const base = { ...groups[i], entries: [...groups[i].entries] }
+      for (let j = i + 1; j < groups.length; j++) {
+        if (used.has(j)) continue
+        if (base.level !== groups[j].level) continue // don't merge across levels
+        const sim = similarity(base.template, groups[j].template)
+        if (sim >= fuzzyThreshold) {
+          base.entries.push(...groups[j].entries)
+          used.add(j)
+        }
       }
+      used.add(i)
+      merged.push(base)
     }
-    used.add(i)
-    merged.push(base)
   }
 
   // Sort within each group by timestamp
