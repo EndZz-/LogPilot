@@ -1,6 +1,6 @@
 {
   "name": "logpilot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Smart log file organizer and viewer",
   "main": "dist-electron/main/index.js",
   "author": {
