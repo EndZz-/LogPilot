@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
+import { LogSession } from '../../../shared/types'
+import { randomUUID } from '../utils/id'
 
 interface Props {
   onOpenFiles: (paths: string[]) => void
+  onLoadSession: (session: LogSession) => Promise<void>
 }
 
-export function TitleBar({ onOpenFiles }: Props): JSX.Element {
+export function TitleBar({ onOpenFiles, onLoadSession }: Props): JSX.Element {
   const {
     logs, settings, updateSettings,
     collapseAll, collapseDates, expandAll,
@@ -26,8 +29,39 @@ export function TitleBar({ onOpenFiles }: Props): JSX.Element {
   }
 
   const handleSaveSession = async () => {
-    // Build session from current state — delegate to parent handler later
-    // For now, trigger save dialog via API
+    const state = useAppStore.getState()
+    const session: LogSession = {
+      version: '1',
+      id: randomUUID(),
+      name: `Session ${new Date().toLocaleDateString('en-US')}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      colorProfileId: state.activeProfileId,
+      colorProfiles: state.colorProfiles,
+      settings: state.settings,
+      files: state.logs.map(log => ({
+        id: log.id,
+        filePath: log.filePath,
+        fileName: log.fileName,
+        colorProfileId: log.colorProfile.id,
+        collapsedGroups: log.buckets.flatMap(b =>
+          b.groups.filter(g => g.collapsed).map(g => g.id)
+        ),
+        collapsedDays: log.buckets.filter(b => b.collapsed).map(b => b.date),
+        hiddenDates: state.hiddenDates[log.id] ?? [],
+        hiddenGroups: state.hiddenGroups[log.id] ?? [],
+        viewMode: state.viewModes[log.id] ?? 'grouped',
+        levelFilters: state.levelFilters[log.id] ?? []
+      }))
+    }
+    await window.api.saveSession(session)
+  }
+
+  const handleLoadSession = async () => {
+    const result = await window.api.loadSession()
+    if (result.success && result.data) {
+      await onLoadSession(result.data as LogSession)
+    }
   }
 
   return (
@@ -58,10 +92,12 @@ export function TitleBar({ onOpenFiles }: Props): JSX.Element {
               {viewMode === 'grouped' ? '≡ Chronological' : '⊞ Grouped'}
             </button>
             {viewMode === 'grouped' && (
+              <button className="btn-ghost" onClick={() => collapseAll(activeLogId)}>
+                Collapse Events
+              </button>
+            )}
+            {(viewMode === 'grouped' || viewMode === 'chronological') && (
               <>
-                <button className="btn-ghost" onClick={() => collapseAll(activeLogId)}>
-                  Collapse Events
-                </button>
                 <button className="btn-ghost" onClick={() => collapseDates(activeLogId)}>
                   Collapse Dates
                 </button>
@@ -72,6 +108,14 @@ export function TitleBar({ onOpenFiles }: Props): JSX.Element {
             )}
           </>
         )}
+        {logs.length > 0 && (
+          <button className="btn-ghost" onClick={handleSaveSession} title="Save current workspace as a .lfo session file">
+            💾 Save Session
+          </button>
+        )}
+        <button className="btn-ghost" onClick={handleLoadSession} title="Open a saved .lfo session file">
+          📂 Load Session
+        </button>
         <button
           className="btn-ghost"
           onClick={() => setShowSettings(s => !s)}
@@ -113,13 +157,21 @@ export function TitleBar({ onOpenFiles }: Props): JSX.Element {
               className="w-16 bg-surface-800 border border-surface-500 rounded px-2 py-1 text-xs text-white"
             />
           </label>
-          <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+          <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer mb-2">
             <input
               type="checkbox"
               checked={settings.showNonSignificant}
               onChange={e => updateSettings({ showNonSignificant: e.target.checked })}
             />
             Show non-significant events
+          </label>
+          <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.use24HourTime}
+              onChange={e => updateSettings({ use24HourTime: e.target.checked })}
+            />
+            Use 24-hour time format
           </label>
           <button className="btn-ghost mt-3 w-full text-center" onClick={() => setShowSettings(false)}>
             Close

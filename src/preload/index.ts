@@ -17,6 +17,11 @@ const api = {
   loadSession: (filePath?: string) => ipcRenderer.invoke(IPC.LOAD_SESSION, filePath),
   getRecentSessions: () => ipcRenderer.invoke(IPC.GET_RECENT_SESSIONS),
   deleteSession: (sessionId: string) => ipcRenderer.invoke(IPC.DELETE_SESSION, sessionId),
+  onOpenLfoFile: (cb: (filePath: string) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, filePath: string) => cb(filePath)
+    ipcRenderer.on(IPC.OPEN_LFO_FILE, handler)
+    return () => ipcRenderer.removeListener(IPC.OPEN_LFO_FILE, handler)
+  },
 
   // Export
   exportLog: (content: string, defaultName: string) =>

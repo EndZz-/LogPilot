@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react'
 import { useAppStore, LoadedLog } from '../store/useAppStore'
 import { EventGroup, LogEntry } from '../../../shared/types'
+import { formatTimeOnly } from '../utils/formatTime'
 
 interface Props {
   entry: LogEntry
@@ -10,7 +11,7 @@ interface Props {
 }
 
 export function LogEntryRow({ entry, group, log, levelColor }: Props): JSX.Element {
-  const { selectedEntry, setSelectedEntry, searchTerms } = useAppStore()
+  const { selectedEntry, setSelectedEntry, searchTerms, settings } = useAppStore()
   const isSelected = selectedEntry?.entryId === entry.id && selectedEntry?.logId === log.id
   const searchTerm = searchTerms[log.id] ?? ''
 
@@ -21,13 +22,14 @@ export function LogEntryRow({ entry, group, log, levelColor }: Props): JSX.Eleme
   }, [isSelected, log.id, entry.id, entry.timestamp, setSelectedEntry])
 
   const timeStr = entry.timestamp
-    ? entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    ? formatTimeOnly(entry.timestamp, settings.use24HourTime)
     : `L${entry.lineNumber}`
 
   return (
     <div
       className={`log-row ${isSelected ? 'selected' : ''}`}
       onClick={handleClick}
+      data-entry-id={entry.id}
       style={isSelected ? { borderLeftColor: levelColor } : undefined}
     >
       <span className="text-gray-400 text-[11px] w-20 shrink-0 tabular-nums">{timeStr}</span>

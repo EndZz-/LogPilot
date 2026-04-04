@@ -1,13 +1,9 @@
 import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { RecentSession } from '../../shared/types'
 
-export interface RecentSession {
-  id: string
-  name: string
-  path: string
-  updatedAt: string
-}
+export type { RecentSession }
 
 interface Store {
   recentSessions: RecentSession[]

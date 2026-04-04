@@ -1,6 +1,6 @@
 {
   "name": "logpilot",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "Smart log file organizer and viewer",
   "main": "dist-electron/main/index.js",
   "author": {
@@ -42,6 +42,15 @@
     "directories": {
       "output": "release"
     },
+    "fileAssociations": [
+      {
+        "ext": "lfo",
+        "name": "LogPilot Session",
+        "description": "LogPilot workspace session file",
+        "mimeType": "application/x-logpilot-session",
+        "role": "Editor"
+      }
+    ],
     "win": {
       "target": [
         {

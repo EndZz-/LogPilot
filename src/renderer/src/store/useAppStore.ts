@@ -91,6 +91,8 @@ interface AppState {
   setHiddenPanelOpen: (open: boolean) => void
   setSideBySideMode: (enabled: boolean) => void
   reorderLogs: (fromIndex: number, toIndex: number) => void
+  clearLogs: () => void
+  setLevelFilters: (logId: string, levels: string[]) => void
 
   addColorProfile: (profile: ColorProfile) => void
   updateColorProfile: (id: string, patch: Partial<ColorProfile>) => void
@@ -102,7 +104,8 @@ const DEFAULT_SETTINGS: SessionSettings = {
   fuzzyThreshold: 0.55,
   autoCollapseThreshold: 3,
   showNonSignificant: true,
-  correlationWindowOpen: true
+  correlationWindowOpen: true,
+  use24HourTime: false
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -242,6 +245,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   })),
   setHiddenPanelOpen: (open) => set({ hiddenPanelOpen: open }),
   setSideBySideMode: (enabled) => set({ sideBySideMode: enabled }),
+  clearLogs: () => set({
+    logs: [], activeLogId: null, selectedEntry: null,
+    searchTerms: {}, viewModes: {}, levelFilters: {},
+    hiddenDates: {}, hiddenGroups: {}
+  }),
+  setLevelFilters: (logId, levels) => set((s) => ({
+    levelFilters: { ...s.levelFilters, [logId]: levels }
+  })),
   reorderLogs: (fromIndex, toIndex) => set((s) => {
     const logs = [...s.logs]
     const [moved] = logs.splice(fromIndex, 1)

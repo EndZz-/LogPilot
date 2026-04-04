@@ -3,6 +3,7 @@ import { useAppStore, LoadedLog } from '../store/useAppStore'
 import { EventGroup } from '../../../shared/types'
 import { getLevelColor } from '../utils/levelColors'
 import { LogEntryRow } from './LogEntryRow'
+import { formatTimeOnly } from '../utils/formatTime'
 
 interface Props {
   group: EventGroup
@@ -30,7 +31,7 @@ export function EventGroupRow({ group, log, bucketDate }: Props): JSX.Element {
     toggleGroupCollapsed(log.id, bucketDate, group.id)
   }, [log.id, bucketDate, group.id, toggleGroupCollapsed])
 
-  const timeRange = formatTimeRange(group.firstSeen, group.lastSeen)
+  const timeRange = formatTimeRange(group.firstSeen, group.lastSeen, settings.use24HourTime)
 
   return (
     <div
@@ -116,9 +117,9 @@ export function EventGroupRow({ group, log, bucketDate }: Props): JSX.Element {
   )
 }
 
-function formatTimeRange(first: Date | null, last: Date | null): string {
+function formatTimeRange(first: Date | null, last: Date | null, use24Hour: boolean): string {
   if (!first) return ''
-  const fmt = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const fmt = (d: Date) => formatTimeOnly(d, use24Hour)
   if (!last || first.getTime() === last.getTime()) return fmt(first)
   return `${fmt(first)} → ${fmt(last)}`
 }

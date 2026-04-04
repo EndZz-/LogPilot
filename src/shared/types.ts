@@ -86,6 +86,14 @@ export interface ColorProfile {
   levelColors: Partial<Record<LogLevel, string>>
 }
 
+// ── Recent session entry (stored in userData) ─────────────────────────────
+export interface RecentSession {
+  id: string
+  name: string
+  path: string
+  updatedAt: string
+}
+
 // ── Session (.lfo) ────────────────────────────────────────────────────────
 export interface LogSession {
   version: string
@@ -107,6 +115,10 @@ export interface SessionFile {
   collapsedGroups: string[]   // group ids
   collapsedDays: string[]
   selectedEntryId?: string
+  hiddenDates?: string[]
+  hiddenGroups?: string[]
+  viewMode?: 'grouped' | 'chronological'
+  levelFilters?: string[]
 }
 
 export interface SessionSettings {
@@ -115,6 +127,7 @@ export interface SessionSettings {
   autoCollapseThreshold: number    // repeat count before auto-collapse
   showNonSignificant: boolean
   correlationWindowOpen: boolean
+  use24HourTime: boolean           // false = 12hr AM/PM (default), true = 24hr
 }
 
 // ── IPC channel names ─────────────────────────────────────────────────────
@@ -129,6 +142,7 @@ export const IPC = {
   EXPORT_LOG: 'export-log',
   CHECK_FOR_UPDATES: 'check-for-updates',
   SHOW_CONTEXT_MENU: 'show-context-menu',
-  GET_APP_VERSION: 'get-app-version'
+  GET_APP_VERSION: 'get-app-version',
+  OPEN_LFO_FILE: 'open-lfo-file'
 } as const
 

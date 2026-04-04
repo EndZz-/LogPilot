@@ -1,0 +1,5 @@
+018ca19 feat: v0.2.4 - EVTX Windows Event Log support via PowerShell Get-WinEvent
+5f1a33c feat: v0.2.3 - side-by-side split view, tab reordering, duplicate-tab fix, version display
+356c4e5 feat: v0.2.2 - show app version in settings panel
+6020ae2 fix: set renderer outDir to dist-electron/renderer so production build loads correctly
+a65d7db feat: v0.2.0 - side-by-side view, tab drag-to-reorder, synchronized scrolling

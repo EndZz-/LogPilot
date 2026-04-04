@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore } from './store/useAppStore'
 import { TitleBar } from './components/TitleBar'
 import { TabBar } from './components/TabBar'
@@ -10,13 +10,14 @@ import { DropZone } from './components/DropZone'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { HiddenPanel } from './components/HiddenPanel'
 import { randomUUID } from './utils/id'
-import { ParsedLog } from '../../shared/types'
+import { LogSession, ParsedLog } from '../../shared/types'
 
 export default function App(): JSX.Element {
   const {
     logs, activeLogId, contextMenu, correlationOpen, hiddenPanelOpen,
     sideBySideMode, setSideBySideMode,
-    addLog, updateLog, setContextMenu
+    addLog, updateLog, setContextMenu,
+    clearLogs, updateSettings, setViewMode, hideDate, hideGroup, setLevelFilters
   } = useAppStore()
 
   const loadFiles = useCallback(async (filePaths: string[]) => {
@@ -59,6 +60,60 @@ export default function App(): JSX.Element {
     }
   }, [addLog, updateLog])
 
+  const loadSession = useCallback(async (session: LogSession) => {
+    // Restore global settings, then replace all loaded logs
+    updateSettings(session.settings)
+    clearLogs()
+
+    for (const sessionFile of session.files) {
+      const id = sessionFile.id
+
+      addLog({
+        id,
+        fileName: sessionFile.fileName,
+        filePath: sessionFile.filePath,
+        format: 'generic',
+        totalLines: 0,
+        totalEntries: 0,
+        buckets: [],
+        colorProfile: { id: 'default', name: 'Default', rules: [], levelColors: {} },
+        loadedAt: new Date(),
+        isLoading: true,
+        loadProgress: 0
+      })
+
+      const unsub = window.api.onParseProgress((data) => {
+        if (data.filePath === sessionFile.filePath) updateLog(id, { loadProgress: data.progress })
+      })
+
+      try {
+        const result = await window.api.parseLog(sessionFile.filePath)
+        if (result.success) {
+          const parsed = result.data as ParsedLog
+          // Restore collapsed state directly into the parsed buckets/groups
+          const restoredBuckets = parsed.buckets.map(b => ({
+            ...b,
+            collapsed: sessionFile.collapsedDays.includes(b.date),
+            groups: b.groups.map(g => ({
+              ...g,
+              collapsed: sessionFile.collapsedGroups.includes(g.id)
+            }))
+          }))
+          updateLog(id, { ...parsed, id, buckets: restoredBuckets, isLoading: false, loadProgress: 100 })
+          // Restore per-log store state
+          if (sessionFile.viewMode) setViewMode(id, sessionFile.viewMode)
+          for (const date of sessionFile.hiddenDates ?? []) hideDate(id, date)
+          for (const gid of sessionFile.hiddenGroups ?? []) hideGroup(id, gid)
+          if (sessionFile.levelFilters?.length) setLevelFilters(id, sessionFile.levelFilters)
+        } else {
+          updateLog(id, { isLoading: false, fileName: `${sessionFile.fileName} (error)` })
+        }
+      } finally {
+        unsub()
+      }
+    }
+  }, [addLog, updateLog, clearLogs, updateSettings, setViewMode, hideDate, hideGroup, setLevelFilters])
+
   // Keep a ref so the window-level drop handler always reads the live log count
   // without depending on a potentially-stale closure.
   const logsLengthRef = useRef(logs.length)
@@ -84,6 +139,16 @@ export default function App(): JSX.Element {
     }
   }, [loadFiles])
 
+  // Handle .lfo files opened via file-association (double-click or second instance)
+  useEffect(() => {
+    return window.api.onOpenLfoFile(async (filePath: string) => {
+      const result = await window.api.loadSession(filePath)
+      if (result.success && result.data) {
+        await loadSession(result.data as LogSession)
+      }
+    })
+  }, [loadSession])
+
   // Close context menu on outside click
   useEffect(() => {
     if (!contextMenu) return
@@ -99,14 +164,16 @@ export default function App(): JSX.Element {
     if (sideBySideMode && logs.length < 2) setSideBySideMode(false)
   }, [logs.length, sideBySideMode, setSideBySideMode])
 
+  const [correlationHeight, setCorrelationHeight] = useState(220)
+
   const showSideBySide = sideBySideMode && logs.length >= 2
   const showCorrelation = logs.length > 1 && correlationOpen && !hiddenPanelOpen && !showSideBySide
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-surface-900">
-      <TitleBar onOpenFiles={loadFiles} />
+      <TitleBar onOpenFiles={loadFiles} onLoadSession={loadSession} />
       {logs.length === 0 ? (
-        <WelcomeScreen onLoadFiles={loadFiles} />
+        <WelcomeScreen onLoadFiles={loadFiles} onLoadSession={loadSession} />
       ) : (
         <>
           <TabBar onLoadFiles={loadFiles} />
@@ -114,7 +181,7 @@ export default function App(): JSX.Element {
             {/* Main content */}
             <div
               className="flex-1 overflow-hidden"
-              style={{ height: showCorrelation ? 'calc(100% - 220px)' : '100%' }}
+              style={{ height: showCorrelation ? `calc(100% - ${correlationHeight}px)` : '100%' }}
             >
               {hiddenPanelOpen ? (
                 <HiddenPanel />
@@ -132,7 +199,12 @@ export default function App(): JSX.Element {
             </div>
 
             {/* Correlation window (hidden in split mode) */}
-            {showCorrelation && <CorrelationWindow />}
+            {showCorrelation && (
+              <CorrelationWindow
+                height={correlationHeight}
+                onHeightChange={setCorrelationHeight}
+              />
+            )}
           </div>
         </>
       )}
